@@ -1,0 +1,82 @@
+#!/bin/bash
+. utrend.sh
+
+help () {
+	cat << EOF
+Dump data from Micro Trend UTC-3 Series.
+Usage: $0 <dev>
+Options:
+	<dev>: Path to serial device
+EOF
+}
+
+if [ $# -lt 2 ]; then
+	help
+	exit 2
+fi
+
+SERIAL=$1
+utr_chk_serial
+
+if ! utr_ayt; then
+	die "$SERIAL: unable to talk to device"
+	exit 1
+fi
+
+set -e
+report "utrend-utcdump:"
+report "  report:"
+
+wrl "@VER"
+rdl ver_str
+report "    sw_ver: $ver_str"
+
+wrl "@???"
+rdl line
+report "    general_system_status:
+        Reserved: ${line:0:2}
+        MsgSend: ${line:2:1}
+        Gath: ${line:3:1}
+        GathRov: ${line:4:1}
+        BufOpen: ${line:5:1}
+        Com2Req: ${line:6:1}
+        Com1Req: ${line:7:1}
+        Save: ${line:8:1}
+        HandShake: ${line:9:1}
+        Baud: ${line:10:1}"
+if [ "${line:5:1}" != "0" ] then # BufOpen
+	perr "Invalid device state: buffer currently open"
+	exit 1
+fi
+if [ "${line:8:1}" != "1" ] then # Save
+	perr "Invalid device state: flashing in progress"
+	exit 1
+fi
+
+wrl "@??"
+rdl line
+report "    coor_system_status:
+        Reserved: ${line:0:1}
+        MaxAcc: ${line:1:1}
+        Homing: ${line:2:1}
+        InPos: ${line:3:1}
+        DataRdy: ${line:4:1}
+        Norm2: ${line:5:1}
+        AbsR: ${line:6:1}
+        Norm1: ${line:7:1}
+        Rad: ${line:8:1}
+        FixSlew: ${line:9:1}
+        Postlude: ${line:10:1}
+        TMMode: ${line:11:1}
+        Modal: ${line:12:1}
+        Hold: ${line:13:1}
+        RunReq: ${line:14:1}
+        NbBlend: ${line:15:1}
+        Moving: ${line:16:1}
+        Blend: ${line:17:1}
+        Status: ${line:18:1}
+"
+if [ "${line:18:1}" != "0" ] then # Status
+	perr "Invalid device state: program running"
+	exit 1
+fi
