@@ -1,0 +1,5 @@
+; ERROR TEST: Invalid IF-ENDI pair in block
+WHILE(M1>0)
+IF(M2=0)
+ENDW
+ENDW

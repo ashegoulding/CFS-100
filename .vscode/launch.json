@@ -1,0 +1,16 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Python: utrend-vbconv",
+			"type": "python",
+			"request": "launch",
+			"program": "${workspaceFolder}/utsd-105/scripts/utrend-utc2vb",
+			"console": "integratedTerminal",
+			"args": ["<", "${workspaceFolder}/utsd-105/scripts/tests/utc2vb-sample.utc"]
+		}
+	]
+}

@@ -1,0 +1,171 @@
+#!/bin/python3
+import re
+import sys
+
+class NestingError (BaseException):
+	pass
+
+indent_dict = {
+	"IF": "ENDI",
+	"WHILE": "ENDW"
+}
+sub_dict = {
+	"ENDI": "End If",
+	"ENDW": "End While",
+	"ELSE": "Else",
+	"RET": "Return"
+}
+indent_kw_pat = re.compile(r'^(IF|WHILE)[^\w]', re.I)
+deindent_kw_pat = re.compile(r'^(ENDI|ENDW)', re.I)
+reindent_kw_pat = re.compile(r'^(ELSE)', re.I)
+unpadded_op_pat = re.compile(
+	r'([^\s]{1})(AND|OR|!=|<=|>=|\+|\-|\/|\*|=|>|<)([^\s]{1})',
+	re.I)
+cmd_st_pat = re.compile(r'^CMD"(.*)"', re.I)
+block_st_pat = re.compile(r'^(IF|WHILE)\((.*)\)', re.I)
+plc_call_pat = re.compile(r'^(ENAPLC|DISPLC)([\d\s,]+)', re.I)
+comment_pat = re.compile(r'(\s+)?;(.*)$')
+single_st_pat = re.compile(r'^(ENDI|ENDW|ELSE|RET)', re.I)
+
+def subops (line):
+	def subfunc (m):
+		ret = [m[1], m[2].upper(), m[3]]
+		if ret[1] == "!=":
+			ret[1] = "<>"
+		elif ret[1] == "AND":
+			ret[1] = "And"
+		elif ret[1] == "OR":
+			ret[1] = "Or"
+		return ret[0] + " " + ret[1] + " " + ret[2]
+
+	while True:
+		m = re.subn(unpadded_op_pat, subfunc, line, 1)
+		if m[1] == 0:
+			break
+		else:
+			line = m[0]
+
+	return line
+
+# Operator conversion
+#	'!=' -> '<>'
+#	'AND' -> 'And'
+#	'OR' -> 'Or'
+# If and While statement conversion
+#	`IF(...) -> If ...`
+#	`WHILE(...)` -> While ...
+# Unpaddded operators
+#	'+', '-', '/', '*'
+#	'=', '!=', '>', '<', '<=', '>='
+#	'AND', 'OR'
+# Unpadded subroutine calls
+#	`CMD"..."` -> `CMD "..."` (With the operators in the argument padded)
+#	`ENAPLC/DISPLC...` -> `ENAPLC/DISPLC ...`
+# Commend lines
+#	`; ...` -> `' ...`
+# Keywords
+#	`ENDI` -> `End If`,
+#	`ENDW` -> `End While`,
+#	`ELSE` -> `Else`,
+#	`RET` -> `Return`
+def do_sub (line):
+	def subfunc (m):
+		kw = m[1].upper()
+		return sub_dict[kw]
+
+	m = re.subn(single_st_pat, subfunc, line)
+	if m[1] > 0:
+		line = m[0]
+		return line
+
+	m = re.match(plc_call_pat, line)
+	if m:
+		line = m[1] + " " + m[2].replace(",", ", ")
+		return line
+
+	m = re.match(cmd_st_pat, line)
+	if m:
+		line = r'CMD "' + subops(m[1]) + r'"'
+		return line
+
+	m = re.match(block_st_pat, line)
+	if m:
+		kw = m[1].upper()
+		cond = subops(m[2])
+		if kw == "IF":
+			line = "If " + cond + " Then"
+		elif kw == "WHILE":
+			line = "While " + cond
+		else:
+			sys.exit("Unhandled `block_st_pat`")
+		return line
+
+	line = subops(line)
+	return line
+
+indent_stack = []
+indent_level = 0
+
+while True:
+	try:
+		line_in = input()
+	except EOFError:
+		break
+
+	# Save comment so it doesn't go through `do_sub()`
+	# Try to preserve whitespaces
+	m = re.search(comment_pat, line_in)
+	if m:
+		g = m.groups()
+		if g[0]:
+			saved_comment = g[0] + "'" + g[1]
+		else:
+			saved_comment = "'" + g[1]
+		line_in = line_in[:m.start()]
+	else:
+		saved_comment = ""
+
+	# Lose leading/trailing whitespaces for processing
+	line_in = line_in.strip()
+
+	reindent = 0
+	m_indent = re.match(indent_kw_pat, line_in)
+	m_deindent = re.match(deindent_kw_pat, line_in)
+	m_reindent = re.match(reindent_kw_pat, line_in)
+
+	if m_indent:
+		# indent keyword?
+		verb = m_indent[1].upper()
+		indent_stack.append(indent_dict[verb])
+	elif m_deindent:
+		# deindent keyword?
+		encountered = m_deindent[1].upper()
+		expected = indent_stack.pop()
+		if encountered != expected:
+			raise NestingError(
+				"Expected: " + expected + ", "
+				"encountered: " + encountered)
+		indent_level -= 1
+	elif m_reindent:
+		# reindent keyword?
+		reindent = 1
+		verb = m_reindent[1].upper()
+		if verb == "ELSE":
+			if indent_stack[-1] != "ENDI":
+				raise NestingError("Invalid IF-ELSE pair")
+		else:
+			sys.exit("Unhandled `reindent_kw_pat`")
+
+	indent = "\t" * (indent_level - reindent)
+	line_out = do_sub(line_in)
+	if line_out:
+		if saved_comment and not saved_comment[0].isspace():
+			saved_comment = " " + saved_comment
+		print(indent + line_out + saved_comment)
+	elif saved_comment:
+		print(indent + saved_comment)
+	else:
+		print()
+
+	if m_indent:
+		indent_level += 1

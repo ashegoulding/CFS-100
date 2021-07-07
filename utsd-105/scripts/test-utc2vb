@@ -1,0 +1,21 @@
+#!/bin/bash
+SUBJECT_EXEC="./utrend-utc2vb"
+
+echo "============= TEST START ===============
+" 1>&2
+
+for test in tests/utc2vb-err-*; do
+	"$SUBJECT_EXEC" < "$test"
+	if [ $? -eq 0 ]; then
+		echo "$test: failed" 1>&2
+		exit 1
+	fi
+done
+
+set -e
+
+"$SUBJECT_EXEC" < "tests/utc2vb-sample.utc" |
+	diff - "tests/utc2vb-sample.utc.vb"
+
+echo "
+========== ALL TESTS PASSED! ===========" 1>&2

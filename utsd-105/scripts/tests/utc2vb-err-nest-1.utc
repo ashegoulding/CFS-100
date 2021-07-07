@@ -1,0 +1,3 @@
+; ERROR TEST: Invalid IF-ENDI pair
+IF(M1>0)
+ENDW

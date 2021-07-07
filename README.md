@@ -10,7 +10,7 @@ Here are the sibiling project of this project.
 | Project | Description |
 | - | - |
 | [PegOS](https://github.com/ashegoulding/PegOS) | "Sawmilling OS". Contains the new CFS-100 HMI implementation "**MegaTrond**" |
-| [fxsucc](https://github.com/ashegoulding/fxsucc) | Collection of OEM software for programming HMI and PLC |
+| [fxsucc](https://github.com/ashegoulding/fxsucc-pub) | Collection of OEM software for programming HMI and PLC |
 
 ## The Machine
 The machine is called "**Semi-optimising Docking Saw**"(British?) or

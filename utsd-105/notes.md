@@ -62,3 +62,12 @@ Saving Gathered Data (
 Saving CAM Table
 Saving Specified Memory Data (
 ```
+
+## Syntax Highlighting of PLC Code
+Visual Basic seems to be the closest relative to the "UTC Programming Language".
+So ".utc.vb" has been chosen for the extension of the PLC source code files. And
+the abbreviated keywords used in the code can be replaced with the VB equivalent
+for better readability. See **[utrend-utc2vb](scripts/utrend-utc2vb)** for more.
+
+![Comparison of raw PLC code and PLC code converted to VB using
+utrend-utc2vb](img/utc2vb-syntax-highlight.png)

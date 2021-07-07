@@ -1,0 +1,4 @@
+#!/bin/bash
+for f in ../data/dump/PLC-*; do
+	./utrend-utc2vb < "$f" > "../src/$(basename "$f").utc.vb"
+done
